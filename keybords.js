@@ -6,6 +6,10 @@ const mainKeyboard = [
   {
     text: 'Политика',
     callback_data: 'Theme_Politics',
+  },
+  {
+    text: 'Происшествия',
+    callback_data: 'Theme_Incidents',
   }],
   [{
     text: 'Технические',
@@ -15,7 +19,10 @@ const mainKeyboard = [
     text: 'Спорт',
     callback_data: 'Theme_Sport',
   },
-  ],
+  {
+    text: 'Кино',
+    callback_data: 'Theme_Movie',
+  }],
 ];
 
 const secondKeyboard = [
