@@ -1,11 +1,16 @@
-const { mainKeyboard, secondKeyboard } = require('./keybords');
+const { mainKeyboard, secondKeyboard, lastKeyboard, errorKeyboard} = require('./keybords');
 
-const { Telegraf } = require('telegraf');
+const { Telegraf, session, Scenes: { BaseScene, Stage } } = require('telegraf');
+// const sanitize = require('sanitize-html');
 require('dotenv').config();
 const fetch = require('node-fetch');
 
+const stage = new Stage();
 const bot = new Telegraf(process.env.TOKEN);
-bot.use(Telegraf.log());
+bot.use(session());
+bot.use(stage.middleware());
+
+// bot.use(Telegraf.log());
 
 bot.start((ctx) => {
   ctx.reply(` Привет, ${ctx.from.first_name}!
@@ -17,164 +22,94 @@ bot.start((ctx) => {
   });
 });
 
-bot.action(/Theme_.+/gi, (ctx) => {
-  // eslint-disable-next-line max-len
-  const theme = ctx.update.callback_query.message.reply_markup.inline_keyboard.flat(Infinity).find((el) => el.callback_data === ctx.update.callback_query.data).text.toLowerCase();
+bot.help((ctx) => ctx.reply('Если у тебя есть идеи по улучшении бота или ты столкнулся с какой-либо проблемой, напиши мне на t.me/YuriyDyachkov. Спасибо.'));
 
+bot.hears(/^[a-zA-Zа-яёА-ЯЁ\s]{3,20}$/gi, (ctx) => {
+  const theme = ctx.update.message.text.toLowerCase();
   ctx.reply(`Ваша тема ${theme}:`, {
     reply_markup: {
       inline_keyboard: secondKeyboard,
     },
   });
+  ctx.session.theme = theme;
+});
+
+bot.action(/Theme_.+/gi, async (ctx) => {
+  // eslint-disable-next-line max-len
+  const theme = ctx.update.callback_query.message.reply_markup.inline_keyboard.flat(Infinity).find((el) => el.callback_data === ctx.update.callback_query.data).text.toLowerCase();
+  ctx.session.theme = theme;
+  await ctx.replyWithHTML(`Ваша тема ${theme}:`, {
+    reply_markup: {
+      inline_keyboard: secondKeyboard,
+    },
+  });
+  await ctx.answerCbQuery();
 });
 
 bot.action(/Subcategory_.+/gi, async (ctx) => {
   let sort = '';
   const subcategory = ctx.update.callback_query.data;
-  const category = ctx.update.callback_query.message.text.split(' ')[2].replace(/:/i, '');
-
+  const category = ctx.session.theme;
   if (subcategory === 'Subcategory_relevancy') {
     sort = 'relevancy';
   }
   if (subcategory === 'Subcategory_popularity') {
     sort = 'popularity';
   }
-
   const ftch = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(category)}&sortBy=${sort}&apiKey=${process.env.apiKey}&language=ru`);
   const result = await ftch.json();
-  let news = '';
-  result.articles.forEach((el, index) => {
-    if (index < 6) {
-      const str = `${index + 1}: ${el.title}\n${el.description}\n${el.url}\n\n`;
-      news += str;
-    }
-  });
-  ctx.reply(news);
+  if (!result.articles.length) {
+    await ctx.reply('Упс, не получилось обработать запрос. Перефразируйте тему или выберите другую.', errorKeyboard);
+    await ctx.answerCbQuery();
+  } else {
+    const news = [];
+    result.articles?.forEach((el, index) => {
+      const str = `${index + 1}: <b>${el.title}</b>\n${el.description}\n${el.url}\n\n`;
+      news.push(str);
+    });
+    ctx.session.res = news;
+    await ctx.replyWithHTML(ctx.session.res.shift(), lastKeyboard);
+    await ctx.answerCbQuery();
+  }
 });
 
-bot.help((ctx) => ctx.reply(`Привет, меня зовут Юра. Я сделал данного бота за один день, до этого ничего не зная о телеграм ботах.
-Семён сказал, что я красавчик.
-Приезжай на Вавилова 1, обыграю тебя в теннис, дружок!`));
+bot.action(['next', 'back'], async (ctx) => {
+  if (ctx.update.callback_query.data === 'next') {
+    if (ctx.session?.res.length) {
+      const newsWithHtml = ctx.session.res.shift();
+      try {
+        await ctx.replyWithHTML(newsWithHtml, lastKeyboard);
+        await ctx.answerCbQuery();
+      } catch (error) {
+        try {
+          await ctx.replyWithHTML(newsWithHtml.replace(/(<ol>)|(<\/li>)|(<\/ol>)|(<li>)|(<ul>)|(<\/ul>)/gi, ''), lastKeyboard);
+          await ctx.answerCbQuery();
+        } catch (err) {
+          await ctx.reply(newsWithHtml.replace(/(<\/…)|(<b>)|(<\/b>)|(<ol>)|(<\/li>)|(<\/ol>)|(<li>)|(<ul>)|(<\/ul>)/gi, ''), lastKeyboard);
+          await ctx.answerCbQuery();
+        }
+      }
+    } else {
+      ctx.reply(`${ctx.from.first_name}, ты посмотрел все новости на сегодня по данной теме.`, {
+        reply_markup: {
+          inline_keyboard: mainKeyboard,
+        },
+      });
+      await ctx.answerCbQuery();
+    }
+  }
+  if (ctx.update.callback_query.data === 'back') {
+    ctx.replyWithHTML(`${ctx.from.first_name}, выбери тему или введи свою.`, {
+      reply_markup: {
+        inline_keyboard: mainKeyboard,
+      },
+    });
+    await ctx.answerCbQuery();
+  }
+});
 
-/*
-1. Обернуть все в трай кетч
-2. Реализовать логику где юзер сам может вводить тему (использовать регулярку для валидации запроса)
-3. Если останется время. Сделать так, чтобы выводилось по одной новости и была кнопка, которая возвращает к выбору тем.
-*/
+bot.on('message', (ctx) => {
+  ctx.reply('Введи корректное название темы. Оно может начинаться с любых символов, длина запроса ограничена 20. Если ты написал что то плохое, то сам такой.');
+});
 
 bot.launch();
-
-/* {
-  "update_id": 770982183,
-  "callback_query": {
-    "id": "1713823524367750603",
-    "from": {
-      "id": 399030634,
-      "is_bot": false,
-      "first_name": "Артём",
-      "last_name": "Карганян",
-      "username": "Karganyan",
-      "language_code": "ru"
-    },
-    "message": {
-      "message_id": 550,
-      "from": {
-        "id": 1535399544,
-        "is_bot": true,
-        "first_name": "BreakingNews",
-        "username": "ElbrusNews_bot"
-      },
-      "chat": {
-        "id": 399030634,
-        "first_name": "Артём",
-        "last_name": "Карганян",
-        "username": "Karganyan",
-        "type": "private"
-      },
-      "date": 1611254984,
-      "text": "Привет, Артём!\nДанный бот позволит тебе просматривать самые последние новости за выбранный тобой период.\nВыбери категорию из популярных или введи свою.",
-      "reply_markup": {
-        "inline_keyboard": [
-          [
-            {
-              "text": "Экономика",
-              "callback_data": "Theme_Еconomy"
-            },
-            {
-              "text": "Политика",
-              "callback_data": "Theme_Politics"
-            },
-            {
-              "text": "Происшествия",
-              "callback_data": "Theme_Incidents"
-            }
-          ],
-          [
-            {
-              "text": "Технические",
-              "callback_data": "Theme_Hi-Tech"
-            },
-            {
-              "text": "Спорт",
-              "callback_data": "Theme_Sport"
-            },
-            {
-              "text": "Кино",
-              "callback_data": "Theme_Movie"
-            }
-          ]
-        ]
-      }
-    },
-    "chat_instance": "-4471389062030635660",
-    "data": "Theme_Еconomy"
-  }
-}
-{
-  "update_id": 770982184,
-  "callback_query": {
-    "id": "1713823524305842899",
-    "from": {
-      "id": 399030634,
-      "is_bot": false,
-      "first_name": "Артём",
-      "last_name": "Карганян",
-      "username": "Karganyan",
-      "language_code": "ru"
-    },
-    "message": {
-      "message_id": 566,
-      "from": {
-        "id": 1535399544,
-        "is_bot": true,
-        "first_name": "BreakingNews",
-        "username": "ElbrusNews_bot"
-      },
-      "chat": {
-        "id": 399030634,
-        "first_name": "Артём",
-        "last_name": "Карганян",
-        "username": "Karganyan",
-        "type": "private"
-      },
-      "date": 1611255685,
-      "text": "Ваша тема экономика:",
-      "reply_markup": {
-        "inline_keyboard": [
-          [
-            {
-              "text": "Последние",
-              "callback_data": "Subcategory_relevancy"
-            },
-            {
-              "text": "Популярные",
-              "callback_data": "Subcategory_popularity"
-            }
-          ]
-        ]
-      }
-    },
-    "chat_instance": "-4471389062030635660",
-    "data": "Subcategory_popularity"
-  }
-} */

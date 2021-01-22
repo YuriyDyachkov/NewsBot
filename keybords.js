@@ -1,3 +1,5 @@
+const { Markup } = require('telegraf');
+
 const mainKeyboard = [
   [{
     text: 'Экономика',
@@ -23,6 +25,10 @@ const mainKeyboard = [
     text: 'Кино',
     callback_data: 'Theme_Movie',
   }],
+  [{
+    text: 'Если прочитанное было плохим',
+    callback_data: 'Gif',
+  }],
 ];
 
 const secondKeyboard = [
@@ -37,4 +43,13 @@ const secondKeyboard = [
   ],
 ];
 
-module.exports = { mainKeyboard, secondKeyboard };
+const lastKeyboard = Markup.inlineKeyboard([
+  Markup.button.callback('Следующая', 'next'),
+  Markup.button.callback('Вернуться', 'back'),
+]);
+
+const errorKeyboard = Markup.inlineKeyboard([
+  Markup.button.callback('Вернуться', 'back'),
+]);
+
+module.exports = { mainKeyboard, secondKeyboard, lastKeyboard, errorKeyboard };
