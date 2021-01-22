@@ -27,18 +27,22 @@ const mainKeyboard = [
   }],
   [{
     text: 'Если прочитанное было плохим',
-    callback_data: 'Gif',
+    callback_data: 'funny',
   }],
 ];
 
 const secondKeyboard = [
   [{
-    text: 'Последние',
+    text: '?Релевантные?',
     callback_data: 'Subcategory_relevancy',
   },
   {
     text: 'Популярные',
     callback_data: 'Subcategory_popularity',
+  },
+  {
+    text: 'Последние',
+    callback_data: 'Subcategory_publishedAt',
   },
   ],
 ];

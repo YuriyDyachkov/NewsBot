@@ -4,6 +4,7 @@ const { Telegraf, session, Scenes: { BaseScene, Stage } } = require('telegraf');
 // const sanitize = require('sanitize-html');
 require('dotenv').config();
 const fetch = require('node-fetch');
+const iconv = require('iconv-lite');
 
 const stage = new Stage();
 const bot = new Telegraf(process.env.TOKEN);
@@ -34,6 +35,13 @@ bot.hears(/^[a-zA-Zа-яёА-ЯЁ\s]{3,20}$/gi, (ctx) => {
   ctx.session.theme = theme;
 });
 
+bot.action('funny', async (ctx) => {
+  // const ftch = await fetch('https://thiscatdoesnotexist.com/');
+  // console.log(ftch);
+  ctx.replyWithPhoto('https://thiscatdoesnotexist.com', errorKeyboard);
+  ctx.answerCbQuery();
+});
+
 bot.action(/Theme_.+/gi, async (ctx) => {
   // eslint-disable-next-line max-len
   const theme = ctx.update.callback_query.message.reply_markup.inline_keyboard.flat(Infinity).find((el) => el.callback_data === ctx.update.callback_query.data).text.toLowerCase();
@@ -56,6 +64,10 @@ bot.action(/Subcategory_.+/gi, async (ctx) => {
   if (subcategory === 'Subcategory_popularity') {
     sort = 'popularity';
   }
+  if (subcategory === 'Subcategory_publishedAt') {
+    sort = 'publishedAt';
+  }
+
   const ftch = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(category)}&sortBy=${sort}&apiKey=${process.env.apiKey}&language=ru`);
   const result = await ftch.json();
   if (!result.articles.length) {
@@ -68,8 +80,14 @@ bot.action(/Subcategory_.+/gi, async (ctx) => {
       news.push(str);
     });
     ctx.session.res = news;
-    await ctx.replyWithHTML(ctx.session.res.shift(), lastKeyboard);
-    await ctx.answerCbQuery();
+    const newsWithHtml = ctx.session.res.shift();
+    try {
+      await ctx.replyWithHTML(newsWithHtml, lastKeyboard);
+      await ctx.answerCbQuery();
+    } catch (error) {
+      await ctx.reply(newsWithHtml.replace(/(<\/…)|(<b>)|(<\/b>)|(<ol>)|(<\/li>)|(<\/ol>)|(<li>)|(<ul>)|(<\/ul>)/gi, ''), lastKeyboard);
+      await ctx.answerCbQuery();
+    }
   }
 });
 
