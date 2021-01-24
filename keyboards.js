@@ -33,7 +33,7 @@ const mainKeyboard = [
 
 const secondKeyboard = [
   [{
-    text: '?Релевантные?',
+    text: 'Релевантные',
     callback_data: 'Subcategory_relevancy',
   },
   {

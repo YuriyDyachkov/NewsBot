@@ -1,10 +1,9 @@
-const { mainKeyboard, secondKeyboard, lastKeyboard, errorKeyboard} = require('./keybords');
+const { mainKeyboard, secondKeyboard, lastKeyboard, errorKeyboard } = require('./keyboards');
 
 const { Telegraf, session, Scenes: { BaseScene, Stage } } = require('telegraf');
 // const sanitize = require('sanitize-html');
 require('dotenv').config();
 const fetch = require('node-fetch');
-const iconv = require('iconv-lite');
 
 const stage = new Stage();
 const bot = new Telegraf(process.env.TOKEN);
@@ -14,8 +13,8 @@ bot.use(stage.middleware());
 // bot.use(Telegraf.log());
 
 bot.start((ctx) => {
-  ctx.reply(` Привет, ${ctx.from.first_name}!
-Данный бот позволит тебе просматривать самые последние новости за выбранный тобой период.
+  ctx.reply(`Привет, ${ctx.from.first_name}!
+Данный бот позволит тебе просматривать самые последние и актуальные новости.
 Выбери категорию из популярных или введи свою.`, {
     reply_markup: {
       inline_keyboard: mainKeyboard,
@@ -23,9 +22,9 @@ bot.start((ctx) => {
   });
 });
 
-bot.help((ctx) => ctx.reply('Если у тебя есть идеи по улучшении бота или ты столкнулся с какой-либо проблемой, напиши мне на t.me/YuriyDyachkov. Спасибо.'));
+bot.help((ctx) => ctx.reply('Если у тебя есть идеи по улучшению бота или ты столкнулся с какой-либо проблемой, напиши мне на t.me/YuriyDyachkov.'));
 
-bot.hears(/^[a-zA-Zа-яёА-ЯЁ\s]{3,20}$/gi, (ctx) => {
+bot.hears(/^[a-zA-Zа-яёА-ЯЁ0-9\s]{3,20}$/gi, (ctx) => {
   const theme = ctx.update.message.text.toLowerCase();
   ctx.reply(`Ваша тема ${theme}:`, {
     reply_markup: {
@@ -36,9 +35,8 @@ bot.hears(/^[a-zA-Zа-яёА-ЯЁ\s]{3,20}$/gi, (ctx) => {
 });
 
 bot.action('funny', async (ctx) => {
-  // const ftch = await fetch('https://thiscatdoesnotexist.com/');
-  // console.log(ftch);
-  ctx.replyWithPhoto('https://thiscatdoesnotexist.com', errorKeyboard);
+  const ftch = await fetch('https://thiscatdoesnotexist.com/');
+  ctx.replyWithPhoto(ftch, errorKeyboard);
   ctx.answerCbQuery();
 });
 
@@ -51,7 +49,7 @@ bot.action(/Theme_.+/gi, async (ctx) => {
       inline_keyboard: secondKeyboard,
     },
   });
-  await ctx.answerCbQuery();
+  ctx.answerCbQuery();
 });
 
 bot.action(/Subcategory_.+/gi, async (ctx) => {
@@ -67,11 +65,10 @@ bot.action(/Subcategory_.+/gi, async (ctx) => {
   if (subcategory === 'Subcategory_publishedAt') {
     sort = 'publishedAt';
   }
-
   const ftch = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(category)}&sortBy=${sort}&apiKey=${process.env.apiKey}&language=ru`);
   const result = await ftch.json();
   if (!result.articles.length) {
-    await ctx.reply('Упс, не получилось обработать запрос. Перефразируйте тему или выберите другую.', errorKeyboard);
+    await ctx.reply('Упс, не получилось обработать запрос. Перефразируй тему или выбери другую.', errorKeyboard);
     await ctx.answerCbQuery();
   } else {
     const news = [];
@@ -86,7 +83,7 @@ bot.action(/Subcategory_.+/gi, async (ctx) => {
       await ctx.answerCbQuery();
     } catch (error) {
       await ctx.reply(newsWithHtml.replace(/(<\/…)|(<b>)|(<\/b>)|(<ol>)|(<\/li>)|(<\/ol>)|(<li>)|(<ul>)|(<\/ul>)/gi, ''), lastKeyboard);
-      await ctx.answerCbQuery();
+      ctx.answerCbQuery();
     }
   }
 });
@@ -97,14 +94,14 @@ bot.action(['next', 'back'], async (ctx) => {
       const newsWithHtml = ctx.session.res.shift();
       try {
         await ctx.replyWithHTML(newsWithHtml, lastKeyboard);
-        await ctx.answerCbQuery();
+        ctx.answerCbQuery();
       } catch (error) {
         try {
           await ctx.replyWithHTML(newsWithHtml.replace(/(<ol>)|(<\/li>)|(<\/ol>)|(<li>)|(<ul>)|(<\/ul>)/gi, ''), lastKeyboard);
-          await ctx.answerCbQuery();
+          ctx.answerCbQuery();
         } catch (err) {
           await ctx.reply(newsWithHtml.replace(/(<\/…)|(<b>)|(<\/b>)|(<ol>)|(<\/li>)|(<\/ol>)|(<li>)|(<ul>)|(<\/ul>)/gi, ''), lastKeyboard);
-          await ctx.answerCbQuery();
+          ctx.answerCbQuery();
         }
       }
     } else {
@@ -113,7 +110,7 @@ bot.action(['next', 'back'], async (ctx) => {
           inline_keyboard: mainKeyboard,
         },
       });
-      await ctx.answerCbQuery();
+      ctx.answerCbQuery();
     }
   }
   if (ctx.update.callback_query.data === 'back') {
@@ -122,7 +119,7 @@ bot.action(['next', 'back'], async (ctx) => {
         inline_keyboard: mainKeyboard,
       },
     });
-    await ctx.answerCbQuery();
+    ctx.answerCbQuery();
   }
 });
 
