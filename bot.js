@@ -65,6 +65,7 @@ bot.action(/Subcategory_.+/gi, async (ctx) => {
   if (subcategory === 'Subcategory_publishedAt') {
     sort = 'publishedAt';
   }
+
   const ftch = await fetch(`https://newsapi.org/v2/everything?q=${encodeURIComponent(category)}&sortBy=${sort}&apiKey=${process.env.apiKey}&language=ru`);
   const result = await ftch.json();
   if (!result.articles.length) {
