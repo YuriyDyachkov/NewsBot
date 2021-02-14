@@ -35,7 +35,7 @@ bot.hears(/^[a-zA-Zа-яёА-ЯЁ0-9\s]{3,20}$/gi, (ctx) => {
 });
 
 bot.action('funny', async (ctx) => {
-  const ftch = await fetch('https://thiscatdoesnotexist.com/');
+  const ftch = await fetch('https://api.thecatapi.com/v1/images/search?size=full');
   ctx.replyWithPhoto(ftch, errorKeyboard);
   ctx.answerCbQuery();
 });
