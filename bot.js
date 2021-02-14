@@ -38,7 +38,6 @@ bot.action('funny', async (ctx) => {
   const response = await fetch('https://api.thecatapi.com/v1/images/search?size=full');
   const result = await response.json();
   const pic = result[0].url;
-  console.log('====>', pic);
   ctx.replyWithPhoto(pic, errorKeyboard);
   ctx.answerCbQuery();
 });
