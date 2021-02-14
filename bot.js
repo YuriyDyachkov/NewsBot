@@ -35,8 +35,11 @@ bot.hears(/^[a-zA-Zа-яёА-ЯЁ0-9\s]{3,20}$/gi, (ctx) => {
 });
 
 bot.action('funny', async (ctx) => {
-  const ftch = await fetch('https://api.thecatapi.com/v1/images/search?size=full');
-  ctx.replyWithPhoto(ftch, errorKeyboard);
+  const response = await fetch('https://api.thecatapi.com/v1/images/search?size=full');
+  const result = await response.json();
+  const pic = result[0].url;
+  console.log('====>', pic);
+  ctx.replyWithPhoto(pic, errorKeyboard);
   ctx.answerCbQuery();
 });
 
