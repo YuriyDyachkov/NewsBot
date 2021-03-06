@@ -1,6 +1,6 @@
 const { mainKeyboard, secondKeyboard, lastKeyboard, errorKeyboard } = require('./keyboards');
 
-const { Telegraf, session, Scenes: { BaseScene, Stage } } = require('telegraf');
+const { Telegraf, session, Scenes: { Stage } } = require('telegraf');
 require('dotenv').config();
 const fetch = require('node-fetch');
 
@@ -8,7 +8,6 @@ const stage = new Stage();
 const bot = new Telegraf(process.env.TOKEN);
 bot.use(session());
 bot.use(stage.middleware());
-
 // bot.use(Telegraf.log());
 
 bot.start((ctx) => {
