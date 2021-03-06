@@ -1,7 +1,6 @@
 const { mainKeyboard, secondKeyboard, lastKeyboard, errorKeyboard } = require('./keyboards');
 
 const { Telegraf, session, Scenes: { BaseScene, Stage } } = require('telegraf');
-// const sanitize = require('sanitize-html');
 require('dotenv').config();
 const fetch = require('node-fetch');
 
